@@ -1,0 +1,30 @@
+# Sensitive configuration (contains passwords)
+config.sh
+
+# Generated output files
+output/
+reports/
+
+# Logs
+*.log
+indexing_log.txt
+
+# macOS
+.DS_Store
+
+# Temp files
+*.tmp
+/tmp/
+
+# Google credentials
+*.json
+!package.json
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.env

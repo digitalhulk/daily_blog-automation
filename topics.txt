@@ -1,0 +1,34 @@
+# Real Estate Digital Marketing Blog Topics
+# Format: topic|primary_keyword|secondary_keywords
+# One topic per line, will be used in rotation
+
+Best Time to Buy Property in Delhi NCR 2026|buy property delhi ncr|real estate investment, property prices delhi
+Google Ads vs Facebook Ads for Real Estate Developers|google ads real estate|facebook ads builders, ppc marketing
+How to Choose the Right Digital Marketing Agency for Real Estate|digital marketing agency real estate|marketing agency builders, real estate marketing
+Top 10 SEO Strategies for Real Estate Websites in India|seo real estate india|property website seo, real estate ranking
+Instagram Marketing for Builders: Complete Guide|instagram marketing builders|social media real estate, instagram ads property
+WhatsApp Marketing for Real Estate Lead Generation|whatsapp marketing real estate|whatsapp leads, property whatsapp marketing
+How to Create High-Converting Real Estate Landing Pages|real estate landing page|landing page optimization, property landing page
+Video Marketing Strategies for Real Estate Projects|video marketing real estate|youtube real estate, property videos
+Email Marketing Automation for Real Estate Developers|email marketing real estate|email automation builders, property email campaigns
+Retargeting Strategies to Convert Real Estate Leads|retargeting real estate|remarketing property, facebook retargeting
+Local SEO for Real Estate: Dominate Your Area|local seo real estate|google my business real estate, local search property
+Content Marketing Ideas for Real Estate Developers|content marketing real estate|blog ideas builders, real estate content strategy
+How to Track ROI in Real Estate Digital Marketing|roi digital marketing real estate|marketing analytics property, real estate metrics
+Lead Scoring Techniques for Real Estate Sales Teams|lead scoring real estate|lead qualification, property lead management
+CRM Best Practices for Real Estate Developers|crm real estate|property crm, builder crm software
+Mobile Marketing Strategies for Real Estate|mobile marketing real estate|mobile ads property, smartphone marketing
+Influencer Marketing for Real Estate Projects|influencer marketing real estate|property influencers, real estate collaboration
+Chatbot Implementation for Real Estate Websites|chatbot real estate|ai chatbot property, automated lead capture
+Google My Business Optimization for Real Estate|gmb real estate|google business profile, local seo property
+Festive Season Marketing for Real Estate|festive marketing real estate|diwali property marketing, navratri real estate
+Budget Allocation for Real Estate Digital Marketing|marketing budget real estate|ad spend property, digital marketing cost
+A/B Testing Strategies for Real Estate Campaigns|ab testing real estate|campaign optimization, real estate experiments
+Building Trust Online as a Real Estate Developer|online trust real estate|reputation management, builder credibility
+Competitor Analysis in Real Estate Digital Marketing|competitor analysis real estate|market research property, competition tracking
+Future of AI in Real Estate Marketing|ai real estate marketing|artificial intelligence property, machine learning leads
+Virtual Tours and 3D Marketing for Real Estate|virtual tour real estate|3d walkthrough, online property viewing
+Social Proof Strategies for Real Estate Marketing|social proof real estate|testimonials builders, reviews property
+Marketing Luxury Real Estate Projects|luxury real estate marketing|premium property ads, high-end marketing
+Affordable Housing Marketing Strategies|affordable housing marketing|budget property ads, low-cost housing leads
+Real Estate Marketing During Market Slowdown|slowdown marketing real estate|recession property marketing, low demand strategy
