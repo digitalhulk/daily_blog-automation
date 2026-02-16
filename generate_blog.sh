@@ -94,7 +94,7 @@ PAYLOAD_FILE="/tmp/ollama_payload_$$.json"
 cat > "$PAYLOAD_FILE" << JSONPAYLOAD
 {
   "model": "$OLLAMA_MODEL",
-  "prompt": "You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $(date '+%B %d, %Y').\n\nWrite a comprehensive, SEO-optimized blog article about: \"$TOPIC\"\n\nPrimary keyword: $PRIMARY_KEYWORD\nSecondary keywords: $SECONDARY_KEYWORDS$MARKET_CONTEXT\n\nRequirements:\n1. Write 1500-2000 words of high-quality content\n2. Use the primary keyword naturally 5-7 times throughout the article\n3. Include H2 and H3 headings with keywords\n4. Write engaging introduction that hooks the reader\n5. Include actionable tips with real examples from India\n6. Add current statistics and data (use realistic 2025-2026 numbers)\n7. Write for builders and real estate developers in Delhi NCR, India\n8. Reference current market trends and conditions\n9. Include a call-to-action for LeadHorizon services\n10. Use simple, professional language\n\nIMPORTANT: Output your response in EXACTLY this format:\n<title>SEO Title (under 60 characters)</title>\n<meta_description>Meta description (under 160 characters)</meta_description>\n<content>\nYour full HTML content here with proper h2, h3, p, ul, li tags\n</content>",
+  "prompt": "You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $(date '+%B %d, %Y').\n\nWrite a comprehensive, SEO-optimized blog article about: \"$TOPIC\"\n\nPrimary keyword: $PRIMARY_KEYWORD\nSecondary keywords: $SECONDARY_KEYWORDS$MARKET_CONTEXT\n\nSTRICT REQUIREMENTS:\n1. Write MINIMUM 1800-2200 words (this is critical - count your words)\n2. Use the primary keyword naturally 6-8 times throughout\n3. Structure with exactly 5-6 H2 sections, each with 2-3 H3 subsections\n4. NEVER use H1 tag (the page already has H1 in hero section)\n5. Every list must have MINIMUM 5 bullet points\n6. Each section must have at least 150-200 words\n7. Include 3-4 statistics with specific numbers (percentages, rupee amounts)\n8. Add real examples from Delhi NCR market (Gurgaon, Noida, Greater Noida)\n9. Write for builders and real estate developers\n10. End with strong call-to-action paragraph for LeadHorizon\n\nHTML FORMATTING RULES:\n- Use ONLY these HTML tags: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>\n- NO markdown syntax (no **, no *, no ###)\n- NO <h1> tags\n- Wrap every paragraph in <p> tags\n- Use <ul><li> for all bullet lists\n- Use <strong> for emphasis, not **text**\n\nOUTPUT FORMAT (follow exactly):\n<title>SEO Title under 60 chars</title>\n<meta_description>Compelling description under 155 chars</meta_description>\n<content>\n<h2>First Section Heading</h2>\n<p>Paragraph content here...</p>\n<h3>Subsection</h3>\n<p>More content...</p>\n<ul>\n<li>Point one</li>\n<li>Point two</li>\n<li>Point three</li>\n<li>Point four</li>\n<li>Point five</li>\n</ul>\n</content>",
   "stream": false
 }
 JSONPAYLOAD
@@ -145,15 +145,77 @@ else:
     content = re.sub(r'<meta_description>.*?</meta_description>', '', content, flags=re.DOTALL | re.IGNORECASE)
     content = content.strip()
 
-# Convert markdown-style formatting to HTML if needed
-content = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', content)
-content = re.sub(r'\*([^*]+)\*', r'<em>\1</em>', content)
+# CLEANUP: Remove any remaining <content> tags
+content = re.sub(r'</?content>', '', content, flags=re.IGNORECASE)
 
-# Ensure content has proper HTML structure
-if not re.search(r'<(p|h[1-6]|ul|ol|div)', content):
-    # Wrap paragraphs in <p> tags
-    paragraphs = content.split('\n\n')
-    content = '\n'.join([f'<p>{p.strip()}</p>' for p in paragraphs if p.strip()])
+# CLEANUP: Remove any H1 tags (page already has H1 in hero)
+content = re.sub(r'<h1[^>]*>.*?</h1>', '', content, flags=re.DOTALL | re.IGNORECASE)
+
+# Convert markdown headings to HTML
+content = re.sub(r'^### (.+)$', r'<h3>\1</h3>', content, flags=re.MULTILINE)
+content = re.sub(r'^## (.+)$', r'<h2>\1</h2>', content, flags=re.MULTILINE)
+
+# Convert markdown bold/italic to HTML
+content = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', content)
+content = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<em>\1</em>', content)
+
+# Convert markdown bullet lists to HTML
+lines = content.split('\n')
+new_lines = []
+in_list = False
+for line in lines:
+    stripped = line.strip()
+    # Check for bullet point (*, -, or numbered)
+    bullet_match = re.match(r'^[\*\-]\s+(.+)$', stripped)
+    num_match = re.match(r'^\d+\.\s+(.+)$', stripped)
+
+    if bullet_match:
+        if not in_list:
+            new_lines.append('<ul>')
+            in_list = True
+        new_lines.append(f'<li>{bullet_match.group(1)}</li>')
+    elif num_match:
+        if not in_list:
+            new_lines.append('<ol>')
+            in_list = 'ol'
+        new_lines.append(f'<li>{num_match.group(1)}</li>')
+    else:
+        if in_list:
+            if in_list == 'ol':
+                new_lines.append('</ol>')
+            else:
+                new_lines.append('</ul>')
+            in_list = False
+        new_lines.append(line)
+
+if in_list:
+    new_lines.append('</ul>' if in_list != 'ol' else '</ol>')
+
+content = '\n'.join(new_lines)
+
+# Wrap standalone text paragraphs in <p> tags
+# Split by double newlines and wrap if not already tagged
+paragraphs = re.split(r'\n\s*\n', content)
+wrapped = []
+for p in paragraphs:
+    p = p.strip()
+    if not p:
+        continue
+    # Check if already has HTML tags
+    if re.match(r'^<(h[2-6]|p|ul|ol|li|div|blockquote)', p):
+        wrapped.append(p)
+    elif p.startswith('<'):
+        wrapped.append(p)
+    else:
+        # Wrap in <p> if it's plain text
+        wrapped.append(f'<p>{p}</p>')
+
+content = '\n\n'.join(wrapped)
+
+# Clean up any double tags or empty paragraphs
+content = re.sub(r'<p>\s*</p>', '', content)
+content = re.sub(r'<p>\s*<(h[2-6]|ul|ol)', r'<\1', content)
+content = re.sub(r'</(h[2-6]|ul|ol)>\s*</p>', r'</\1>', content)
 
 print("---TITLE_START---")
 print(title)
