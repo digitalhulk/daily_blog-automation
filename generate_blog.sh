@@ -321,23 +321,50 @@ if [ $READ_TIME -lt 1 ]; then READ_TIME=1; fi
 
 echo "📊 Word count: $WORD_COUNT, Read time: $READ_TIME min"
 
-# Download unique featured image from Unsplash based on topic
+# Download unique featured image from Unsplash
 echo "🖼️ Downloading unique featured image..."
 FEATURED_IMAGE="${SLUG}.jpg"
 IMAGE_PATH="$OUTPUT_DIR/${FEATURED_IMAGE}"
 
-# Unsplash search terms based on common real estate marketing topics
-SEARCH_TERM=$(echo "$PRIMARY_KEYWORD" | sed 's/ /%20/g')
+# Pre-selected high-quality real estate images from Unsplash (direct URLs)
+REAL_ESTATE_IMAGES=(
+    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200&h=630&fit=crop"
+    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=630&fit=crop"
+)
 
-# Download image from Unsplash (random relevant image)
-UNSPLASH_URL="https://source.unsplash.com/1200x630/?${SEARCH_TERM},real-estate,marketing"
-curl -sL "$UNSPLASH_URL" -o "$IMAGE_PATH" 2>/dev/null
+# Select random image based on day to ensure variety
+DAY_OF_YEAR=$(date +%j)
+IMAGE_INDEX=$((DAY_OF_YEAR % ${#REAL_ESTATE_IMAGES[@]}))
+SELECTED_IMAGE="${REAL_ESTATE_IMAGES[$IMAGE_INDEX]}"
 
-# Check if download was successful
-if [ ! -f "$IMAGE_PATH" ] || [ ! -s "$IMAGE_PATH" ]; then
-    echo "⚠️ Unsplash download failed, using fallback"
-    # Fallback to a generic real estate image
-    curl -sL "https://source.unsplash.com/1200x630/?real-estate,building" -o "$IMAGE_PATH" 2>/dev/null
+# Download image
+curl -sL "$SELECTED_IMAGE" -o "$IMAGE_PATH" 2>/dev/null
+
+# Verify download is actually a JPEG (check file size > 10KB)
+FILE_SIZE=$(stat -f%z "$IMAGE_PATH" 2>/dev/null || stat -c%s "$IMAGE_PATH" 2>/dev/null || echo "0")
+if [ "$FILE_SIZE" -lt 10000 ]; then
+    echo "⚠️ Image download failed (size: ${FILE_SIZE}), trying fallback..."
+    # Try another image
+    FALLBACK_INDEX=$(( (IMAGE_INDEX + 1) % ${#REAL_ESTATE_IMAGES[@]} ))
+    curl -sL "${REAL_ESTATE_IMAGES[$FALLBACK_INDEX]}" -o "$IMAGE_PATH" 2>/dev/null
+
+    # Check again
+    FILE_SIZE=$(stat -f%z "$IMAGE_PATH" 2>/dev/null || stat -c%s "$IMAGE_PATH" 2>/dev/null || echo "0")
+    if [ "$FILE_SIZE" -lt 10000 ]; then
+        echo "❌ All image downloads failed"
+    else
+        echo "✅ Fallback image downloaded (${FILE_SIZE} bytes)"
+    fi
+else
+    echo "✅ Image downloaded (${FILE_SIZE} bytes)"
 fi
 
 # Create SEO-optimized ALT tag
