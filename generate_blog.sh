@@ -89,15 +89,78 @@ if [ -n "$MARKET_ANALYSIS" ]; then
     MARKET_CONTEXT="\\n\\nMarket Context (use this insight in your article): $MARKET_ANALYSIS"
 fi
 
-# Create JSON payload file using heredoc to preserve formatting
+# Create JSON payload using Python for proper escaping
 PAYLOAD_FILE="/tmp/ollama_payload_$$.json"
-cat > "$PAYLOAD_FILE" << JSONPAYLOAD
-{
-  "model": "$OLLAMA_MODEL",
-  "prompt": "You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $(date '+%B %d, %Y').\n\nWrite a comprehensive, SEO-optimized blog article about: \"$TOPIC\"\n\nPrimary keyword: $PRIMARY_KEYWORD\nSecondary keywords: $SECONDARY_KEYWORDS$MARKET_CONTEXT\n\nSTRICT REQUIREMENTS:\n1. Write MINIMUM 1800-2200 words (this is critical - count your words)\n2. Use the primary keyword naturally 6-8 times throughout\n3. Structure with exactly 5-6 H2 sections, each with 2-3 H3 subsections\n4. NEVER use H1 tag (the page already has H1 in hero section)\n5. Every list must have MINIMUM 5 bullet points\n6. Each section must have at least 150-200 words\n7. Include 3-4 statistics with specific numbers (percentages, rupee amounts)\n8. Add real examples from Delhi NCR market (Gurgaon, Noida, Greater Noida)\n9. Write for builders and real estate developers\n10. End with strong call-to-action paragraph for LeadHorizon\n\nHTML FORMATTING RULES:\n- Use ONLY these HTML tags: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>\n- NO markdown syntax (no **, no *, no ###)\n- NO <h1> tags\n- Wrap every paragraph in <p> tags\n- Use <ul><li> for all bullet lists\n- Use <strong> for emphasis, not **text**\n\nOUTPUT FORMAT (follow exactly):\n<title>SEO Title under 60 chars</title>\n<meta_description>Compelling description under 155 chars</meta_description>\n<content>\n<h2>First Section Heading</h2>\n<p>Paragraph content here...</p>\n<h3>Subsection</h3>\n<p>More content...</p>\n<ul>\n<li>Point one</li>\n<li>Point two</li>\n<li>Point three</li>\n<li>Point four</li>\n<li>Point five</li>\n</ul>\n</content>",
-  "stream": false
+TODAY_DATE=$(date '+%B %d, %Y')
+
+python3 << PYPAYLOAD
+import json
+
+prompt = """You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $TODAY_DATE.
+
+Write a LONG, comprehensive, SEO-optimized blog article about: "$TOPIC"
+
+Primary keyword: $PRIMARY_KEYWORD
+Secondary keywords: $SECONDARY_KEYWORDS
+$MARKET_CONTEXT
+
+CRITICAL LENGTH REQUIREMENT:
+- You MUST write AT LEAST 1500 words
+- Each H2 section must have 200-300 words minimum
+- Include 6 detailed H2 sections
+- This is a LONG-FORM article, not a short post
+
+STRICT REQUIREMENTS:
+1. Write MINIMUM 1500-2000 words (CRITICAL - do not stop early)
+2. Use the primary keyword naturally 6-8 times throughout
+3. Structure with exactly 6 H2 sections, each with 2-3 H3 subsections
+4. NEVER use H1 tag (the page already has H1 in hero section)
+5. Every list must have MINIMUM 5 bullet points
+6. Each section must have at least 200 words with detailed explanations
+7. Include 4-5 statistics with specific numbers (percentages, rupee amounts)
+8. Add real examples from Delhi NCR market (Gurgaon, Noida, Greater Noida)
+9. Write for builders and real estate developers in India
+10. End with strong call-to-action paragraph for LeadHorizon
+
+HTML FORMATTING RULES:
+- Use ONLY these HTML tags: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
+- NO markdown syntax (no **, no *, no ###)
+- NO <h1> tags
+- Wrap every paragraph in <p> tags
+- Use <ul><li> for all bullet lists
+
+OUTPUT FORMAT (follow exactly):
+<title>SEO Title under 60 chars</title>
+<meta_description>Compelling description under 155 chars</meta_description>
+<content>
+<h2>First Section Heading</h2>
+<p>Long detailed paragraph here...</p>
+<h3>Subsection</h3>
+<p>More content...</p>
+<ul>
+<li>Point one</li>
+<li>Point two</li>
+<li>Point three</li>
+<li>Point four</li>
+<li>Point five</li>
+</ul>
+</content>"""
+
+payload = {
+    "model": "$OLLAMA_MODEL",
+    "prompt": prompt,
+    "stream": False,
+    "options": {
+        "num_predict": 4096,
+        "temperature": 0.7
+    }
 }
-JSONPAYLOAD
+
+with open("$PAYLOAD_FILE", "w") as f:
+    json.dump(payload, f)
+
+print("Payload created")
+PYPAYLOAD
 
 # Call Ollama API
 echo "📡 Calling Ollama API..."
