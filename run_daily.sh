@@ -90,7 +90,14 @@ python3 "$SCRIPT_DIR/google_indexing.py" 2>&1 | tee -a "$LOG_FILE"
 
 log "✅ Search engine submission complete"
 
-# Step 5: Generate Summary Report
+# Step 5: Share to Social Media (LinkedIn & Facebook)
+log ""
+log "📱 Step 5: Sharing to social media..."
+python3 "$SCRIPT_DIR/social_share.py" 2>&1 | tee -a "$LOG_FILE"
+
+log "✅ Social media sharing complete"
+
+# Step 6: Generate Summary Report
 log ""
 log "============================================================"
 log "📊 DAILY BLOG AUTOMATION SUMMARY"
