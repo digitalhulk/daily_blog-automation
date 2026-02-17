@@ -34,3 +34,7 @@ OLLAMA_MODEL="llama3.1:8b"
 # 4. Add service account email to Search Console as owner
 # 5. Set path below
 GOOGLE_SERVICE_ACCOUNT_JSON=""
+
+# Perplexity API (for real-time market research)
+# Get API key from: https://www.perplexity.ai/settings/api
+PERPLEXITY_API_KEY=""
