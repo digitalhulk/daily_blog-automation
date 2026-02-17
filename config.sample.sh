@@ -23,7 +23,9 @@ SITE_URL="https://yourdomain.com"
 SITE_NAME="YourSiteName"
 
 # Ollama Settings (install from https://ollama.ai)
-OLLAMA_MODEL="llama3.2:latest"
+# Recommended: llama3.1:8b for better content quality (1000-1200 words)
+# Alternatives: mistral:latest (faster), llama3.2:latest (smaller)
+OLLAMA_MODEL="llama3.1:8b"
 
 # Google Indexing (Optional)
 # 1. Go to Google Cloud Console
