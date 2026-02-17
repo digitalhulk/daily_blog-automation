@@ -47,6 +47,17 @@ fi
 
 log "✅ Topic selected"
 
+# Step 1.5: Perplexity Market Research (Real-time data)
+log ""
+log "🔬 Step 1.5: Gathering real-time market research (Perplexity AI)..."
+python3 "$SCRIPT_DIR/market_research.py" 2>&1 | tee -a "$LOG_FILE"
+
+if grep -q "perplexity_research" "$OUTPUT_DIR/today_topic.json" 2>/dev/null; then
+    log "✅ Market research completed"
+else
+    log "⚠️ Research skipped (will use basic analysis)"
+fi
+
 # Step 2: Generate Blog Content
 log ""
 log "📝 Step 2: Generating SEO-optimized blog content..."

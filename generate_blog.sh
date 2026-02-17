@@ -35,6 +35,11 @@ if [ -f "$TREND_TOPIC_FILE" ]; then
     PRIMARY_KEYWORD=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('primary_keyword',''))")
     SECONDARY_KEYWORDS=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('secondary_keywords',''))")
     MARKET_ANALYSIS=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('market_analysis',''))")
+    # Get Perplexity research if available
+    PERPLEXITY_RESEARCH=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('perplexity_research',''))" 2>/dev/null || echo "")
+    if [ -n "$PERPLEXITY_RESEARCH" ]; then
+        echo "🔬 Using Perplexity research data..."
+    fi
 else
     echo "📝 Using random topic from list..."
     TOPIC_LINE=$(get_random_topic)
@@ -42,6 +47,7 @@ else
     PRIMARY_KEYWORD=$(echo "$TOPIC_LINE" | cut -d'|' -f2)
     SECONDARY_KEYWORDS=$(echo "$TOPIC_LINE" | cut -d'|' -f3)
     MARKET_ANALYSIS=""
+    PERPLEXITY_RESEARCH=""
 fi
 
 echo "📝 Generating blog for: $TOPIC"
@@ -86,23 +92,55 @@ echo "🤖 Generating content with Ollama..."
 # Build market context for prompt
 MARKET_CONTEXT=""
 if [ -n "$MARKET_ANALYSIS" ]; then
-    MARKET_CONTEXT="\\n\\nMarket Context (use this insight in your article): $MARKET_ANALYSIS"
+    MARKET_CONTEXT="Market Context: $MARKET_ANALYSIS"
+fi
+
+# Build research context from Perplexity
+RESEARCH_CONTEXT=""
+if [ -n "$PERPLEXITY_RESEARCH" ]; then
+    RESEARCH_CONTEXT="$PERPLEXITY_RESEARCH"
 fi
 
 # Create JSON payload using Python for proper escaping
 PAYLOAD_FILE="/tmp/ollama_payload_$$.json"
 TODAY_DATE=$(date '+%B %d, %Y')
 
+# Save research to temp file for Python to read
+echo "$PERPLEXITY_RESEARCH" > /tmp/perplexity_research_$$.txt
+
 python3 << PYPAYLOAD
 import json
 
-prompt = """You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $TODAY_DATE.
+# Read Perplexity research from temp file
+try:
+    with open('/tmp/perplexity_research_$$.txt', 'r') as f:
+        perplexity_research = f.read().strip()
+except:
+    perplexity_research = ""
+
+research_section = ""
+if perplexity_research:
+    research_section = f"""
+
+=== REAL-TIME MARKET RESEARCH (from Perplexity AI) ===
+Use this research data to make your article factual and current:
+
+{perplexity_research}
+
+=== END RESEARCH ===
+
+IMPORTANT: Incorporate the above statistics, trends, and facts into your article. Cite specific numbers and data points from the research.
+"""
+
+prompt = f"""You are an expert SEO content writer for LeadHorizon, a real estate digital marketing agency in Delhi NCR, India. Today's date is $TODAY_DATE.
 
 Write a LONG, comprehensive, SEO-optimized blog article about: "$TOPIC"
 
 Primary keyword: $PRIMARY_KEYWORD
 Secondary keywords: $SECONDARY_KEYWORDS
+
 $MARKET_CONTEXT
+{research_section}
 
 CRITICAL LENGTH REQUIREMENT:
 - You MUST write AT LEAST 1500 words
@@ -341,7 +379,8 @@ REAL_ESTATE_IMAGES=(
 )
 
 # Select random image based on day to ensure variety
-DAY_OF_YEAR=$(date +%j)
+# Remove leading zeros to avoid octal interpretation
+DAY_OF_YEAR=$(date +%j | sed 's/^0*//')
 IMAGE_INDEX=$((DAY_OF_YEAR % ${#REAL_ESTATE_IMAGES[@]}))
 SELECTED_IMAGE="${REAL_ESTATE_IMAGES[$IMAGE_INDEX]}"
 
