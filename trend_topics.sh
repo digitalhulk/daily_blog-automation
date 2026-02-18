@@ -150,12 +150,23 @@ echo "📈 Market Analysis:"
 echo "$MARKET_ANALYSIS"
 echo ""
 
-# Determine category based on topic keywords
+# Determine category based on topic keywords (7 categories)
 TOPIC_LOWER=$(echo "$TOPIC_TITLE" | tr '[:upper:]' '[:lower:]')
 KW_LOWER=$(echo "$PRIMARY_KW" | tr '[:upper:]' '[:lower:]')
+COMBINED="$TOPIC_LOWER $KW_LOWER"
 
-if echo "$TOPIC_LOWER $KW_LOWER" | grep -qiE "builder|developer|construction|rera|project launch|crm tools builder|referral.*builder"; then
+if echo "$COMBINED" | grep -qiE "builder|developer|construction|rera|project launch|referral.*builder"; then
     TOPIC_CATEGORY="Builder & Developer Tips"
+elif echo "$COMBINED" | grep -qiE "seo|ranking|google my business|gmb|local seo|website|landing page|voice search"; then
+    TOPIC_CATEGORY="SEO & Website"
+elif echo "$COMBINED" | grep -qiE "google ads|facebook ads|ppc|retarget|remarketing|ad budget|ad campaign|paid"; then
+    TOPIC_CATEGORY="Paid Ads"
+elif echo "$COMBINED" | grep -qiE "instagram|youtube|linkedin|social media|reels|shorts|influencer|whatsapp"; then
+    TOPIC_CATEGORY="Social Media"
+elif echo "$COMBINED" | grep -qiE "lead gen|lead nurtur|lead scor|crm|email marketing|chatbot|conversion|follow.up"; then
+    TOPIC_CATEGORY="Lead Generation"
+elif echo "$COMBINED" | grep -qiE "ai |artificial intelligence|automation|chatgpt|machine learning|virtual tour|3d|proptech"; then
+    TOPIC_CATEGORY="AI & Tech"
 else
     TOPIC_CATEGORY="Market Trends"
 fi

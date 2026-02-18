@@ -48,8 +48,27 @@ else
     PRIMARY_KEYWORD=$(echo "$TOPIC_LINE" | cut -d'|' -f2)
     SECONDARY_KEYWORDS=$(echo "$TOPIC_LINE" | cut -d'|' -f3)
     MARKET_ANALYSIS=""
-    CATEGORY="Real Estate Tips"
     PERPLEXITY_RESEARCH=""
+
+    # Auto-detect category from topic keywords
+    TOPIC_LOWER=$(echo "$TOPIC" | tr '[:upper:]' '[:lower:]')
+    KW_LOWER=$(echo "$PRIMARY_KEYWORD" | tr '[:upper:]' '[:lower:]')
+    CMB="$TOPIC_LOWER $KW_LOWER"
+    if echo "$CMB" | grep -qiE "builder|developer|construction|rera|project launch|referral.*builder"; then
+        CATEGORY="Builder & Developer Tips"
+    elif echo "$CMB" | grep -qiE "seo|ranking|google my business|gmb|local seo|website|landing page|voice search"; then
+        CATEGORY="SEO & Website"
+    elif echo "$CMB" | grep -qiE "google ads|facebook ads|ppc|retarget|remarketing|ad budget|ad campaign|paid"; then
+        CATEGORY="Paid Ads"
+    elif echo "$CMB" | grep -qiE "instagram|youtube|linkedin|social media|reels|shorts|influencer|whatsapp"; then
+        CATEGORY="Social Media"
+    elif echo "$CMB" | grep -qiE "lead gen|lead nurtur|lead scor|crm|email marketing|chatbot|conversion|follow.up"; then
+        CATEGORY="Lead Generation"
+    elif echo "$CMB" | grep -qiE "ai |artificial intelligence|automation|chatgpt|machine learning|virtual tour|3d|proptech"; then
+        CATEGORY="AI & Tech"
+    else
+        CATEGORY="Market Trends"
+    fi
 fi
 
 echo "📝 Generating blog for: $TOPIC"
@@ -361,51 +380,92 @@ if [ $READ_TIME -lt 1 ]; then READ_TIME=1; fi
 
 echo "📊 Word count: $WORD_COUNT, Read time: $READ_TIME min"
 
+# Generate tags from secondary keywords + category
+TAGS_HTML=""
+IFS=',' read -ra TAG_ARRAY <<< "$SECONDARY_KEYWORDS"
+for tag in "${TAG_ARRAY[@]}"; do
+    tag=$(echo "$tag" | xargs) # trim whitespace
+    if [ -n "$tag" ]; then
+        TAGS_HTML="${TAGS_HTML}<span class=\"blog-tag\">${tag}</span>"
+    fi
+done
+# Add category as first tag
+TAGS_HTML="<span class=\"blog-tag blog-tag-primary\">${CATEGORY}</span>${TAGS_HTML}"
+
 # Download unique featured image from Unsplash
 echo "🖼️ Downloading unique featured image..."
 FEATURED_IMAGE="${SLUG}.jpg"
 IMAGE_PATH="$OUTPUT_DIR/${FEATURED_IMAGE}"
 
-# Pre-selected high-quality real estate images from Unsplash (direct URLs)
-REAL_ESTATE_IMAGES=(
-    "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200&h=630&fit=crop"
-    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=630&fit=crop"
-)
+# Implement Dynamic Image Selection using Unsplash Source API
+echo "🖼️ Downloading dynamic featured image for: $PRIMARY_KEYWORD"
 
-# Select random image based on day to ensure variety
-# Remove leading zeros to avoid octal interpretation
-DAY_OF_YEAR=$(date +%j | sed 's/^0*//')
-IMAGE_INDEX=$((DAY_OF_YEAR % ${#REAL_ESTATE_IMAGES[@]}))
-SELECTED_IMAGE="${REAL_ESTATE_IMAGES[$IMAGE_INDEX]}"
+# URL encode the keyword for the API
+ENCODED_KEYWORD=$(echo "$PRIMARY_KEYWORD" | sed 's/ /%20/g')
+IMAGE_URL="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop" # Default fallback
 
-# Download image
-curl -sL "$SELECTED_IMAGE" -o "$IMAGE_PATH" 2>/dev/null
+# Try to get a relevant image from Unsplash Source (redirects to actual image)
+# We use a trick to get the redirected URL or download directly
+# Since source.unsplash.com is deprecated, we use the search API pattern or high-quality collection
 
-# Verify download is actually a JPEG (check file size > 10KB)
+# Alternative: Use a specific collection of Real Estate images but randomize
+# or use a reliable search endpoint if available without API key (difficult now with Unsplash changes)
+
+# STRATEGY: Use a large list of specific high-quality images mapped to categories, 
+# OR use the 'source.unsplash.com/1200x630/?real+estate' pattern which might still work for some,
+# BUT for stability, let's use a bigger, categorized list.
+
+# BETTER STRATEGY: 
+# 1. Try to find a relevant image using a keyword search pattern (if supported publicly)
+# 2. Fallback to a large, diverse set of pre-defined images.
+
+# Let's try the source API pattern first, as it's the most dynamic.
+# Note: source.unsplash.com is officially deprecated but often still works or redirects.
+# If it fails, we fall back to the list.
+
+DYNAMIC_URL="https://source.unsplash.com/1200x630/?real-estate,${ENCODED_KEYWORD}"
+
+echo "Trying dynamic URL: $DYNAMIC_URL"
+curl -sL "$DYNAMIC_URL" -o "$IMAGE_PATH" 2>/dev/null
+
+# Verify download
 FILE_SIZE=$(stat -f%z "$IMAGE_PATH" 2>/dev/null || stat -c%s "$IMAGE_PATH" 2>/dev/null || echo "0")
-if [ "$FILE_SIZE" -lt 10000 ]; then
-    echo "⚠️ Image download failed (size: ${FILE_SIZE}), trying fallback..."
-    # Try another image
-    FALLBACK_INDEX=$(( (IMAGE_INDEX + 1) % ${#REAL_ESTATE_IMAGES[@]} ))
-    curl -sL "${REAL_ESTATE_IMAGES[$FALLBACK_INDEX]}" -o "$IMAGE_PATH" 2>/dev/null
 
-    # Check again
+if [ "$FILE_SIZE" -lt 10000 ]; then
+    echo "⚠️ Dynamic image failed (size: ${FILE_SIZE}), using curated list..."
+    
+    # Extended list of high-quality real estate images
+    REAL_ESTATE_IMAGES=(
+        "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1200&h=630&fit=crop" # Modern Building
+        "https://images.unsplash.com/photo-1582407947304-fd86f028f716?w=1200&h=630&fit=crop" # Luxury Home
+        "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=630&fit=crop" # Villa
+        "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&h=630&fit=crop" # Modern Interface
+        "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&h=630&fit=crop" # Apartment
+        "https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=1200&h=630&fit=crop" # House
+        "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&h=630&fit=crop" # Interior
+        "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&h=630&fit=crop" # Kitchen
+        "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=1200&h=630&fit=crop" # Living Room
+        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=1200&h=630&fit=crop" # Mansion
+        "https://images.unsplash.com/photo-1599809275311-2cd01545d71a?w=1200&h=630&fit=crop" # Blue Skyscraper
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=1200&h=630&fit=crop" # Glass Building
+        "https://images.unsplash.com/photo-1448630360428-65456885c650?w=1200&h=630&fit=crop" # Cozy Home
+        "https://images.unsplash.com/photo-1502005229766-52835791e889?w=1200&h=630&fit=crop" # Tree House
+        "https://images.unsplash.com/photo-1494526585095-c41746248156?w=1200&h=630&fit=crop" # Suburban
+    )
+    
+    # Select random from list
+    SELECTED_IMAGE=${REAL_ESTATE_IMAGES[$RANDOM % ${#REAL_ESTATE_IMAGES[@]}]}
+    curl -sL "$SELECTED_IMAGE" -o "$IMAGE_PATH" 2>/dev/null
+    
     FILE_SIZE=$(stat -f%z "$IMAGE_PATH" 2>/dev/null || stat -c%s "$IMAGE_PATH" 2>/dev/null || echo "0")
     if [ "$FILE_SIZE" -lt 10000 ]; then
-        echo "❌ All image downloads failed"
+        echo "❌ Fallback image download failed"
+        # Ultimate fallback - copy a local asset if available or just touch for now (not ideal but prevents crash)
     else
-        echo "✅ Fallback image downloaded (${FILE_SIZE} bytes)"
+        echo "✅ Curated image downloaded (${FILE_SIZE} bytes)"
     fi
 else
-    echo "✅ Image downloaded (${FILE_SIZE} bytes)"
+    echo "✅ Dynamic image downloaded (${FILE_SIZE} bytes)"
 fi
 
 # Create SEO-optimized ALT tag
@@ -456,7 +516,34 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
     <link rel="stylesheet" href="../style.css?v=11">
 
     <style>
-        .blog-article-hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);padding:150px 0 80px;color:var(--white)}.blog-article-hero .badge{background:var(--gold);color:var(--dark)}.blog-article-hero h1{font-family:'Montserrat',sans-serif;font-size:2.8rem;margin:20px 0;line-height:1.3}.blog-meta-info{display:flex;gap:25px;margin-top:25px;font-size:.95rem;opacity:.9}.blog-meta-info i{margin-right:8px}.featured-image{width:100%;max-width:800px;margin:0 auto -40px;padding:0 20px;position:relative;z-index:10}.featured-image img{width:100%;height:400px;object-fit:cover;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.2)}.article-content{padding:80px 0;max-width:800px;margin:0 auto}.article-content h2{font-family:'Montserrat',sans-serif;font-size:1.8rem;color:var(--dark);margin:50px 0 20px}.article-content h3{font-size:1.3rem;color:var(--dark);margin:35px 0 15px}.article-content p{color:var(--text-light);font-size:1.05rem;line-height:1.9;margin-bottom:20px}.article-content ul,.article-content ol{color:var(--text-light);margin:20px 0 20px 25px;line-height:2}.article-content a{color:var(--primary);text-decoration:underline}.key-takeaway{background:linear-gradient(135deg,rgba(128,0,0,.1) 0%,rgba(128,0,0,.05) 100%);border-left:4px solid var(--primary);padding:25px 30px;margin:30px 0;border-radius:0 10px 10px 0}.key-takeaway h4{color:var(--primary);margin-bottom:10px}.key-takeaway p{margin:0;color:var(--text)}.stat-box{background:var(--dark);color:var(--white);padding:30px;border-radius:15px;text-align:center;margin:30px 0}.stat-box .number{font-family:'Montserrat',sans-serif;font-size:3rem;color:var(--gold)}.article-cta{background:linear-gradient(135deg,#800000 0%,#4a0000 100%);color:var(--white);padding:50px;border-radius:15px;text-align:center;margin:50px 0}.article-cta h3{color:var(--white);margin-bottom:15px}.article-cta p{color:rgba(255,255,255,.9);margin-bottom:25px}.author-box{display:flex;gap:20px;padding:30px;background:#f8f9fa;border-radius:15px;margin:50px 0}.author-avatar{width:80px;height:80px;background:linear-gradient(135deg,#800000 0%,#4a0000 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--white);font-size:1.5rem;font-weight:700}.related-posts{background:#f8f9fa;padding:40px;border-radius:15px;margin:40px 0}.related-posts h3{margin-bottom:20px;color:var(--dark)}.related-posts ul{list-style:none;margin:0;padding:0}.related-posts li{margin-bottom:15px}.related-posts a{color:var(--primary);font-weight:500;text-decoration:none;display:flex;align-items:center;gap:10px}.related-posts a:hover{text-decoration:underline}.related-posts i{color:#d4af37}@media(max-width:768px){.blog-article-hero h1{font-size:1.8rem}.blog-meta-info{flex-wrap:wrap}.author-box{flex-direction:column;text-align:center}.featured-image img{height:250px}}
+        /* Reading Progress Bar */
+        .reading-progress{position:fixed;top:0;left:0;width:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--primary));z-index:9999;transition:width .1s}
+
+        /* Hero */
+        .blog-article-hero{background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%);padding:150px 0 80px;color:var(--white)}.blog-article-hero .badge{background:var(--gold);color:var(--dark)}.blog-article-hero h1{font-family:'Montserrat',sans-serif;font-size:2.8rem;margin:20px 0;line-height:1.3}.blog-meta-info{display:flex;gap:25px;margin-top:25px;font-size:.95rem;opacity:.9}.blog-meta-info i{margin-right:8px}
+
+        /* Tags */
+        .blog-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.blog-tag{display:inline-block;padding:5px 14px;border-radius:20px;font-size:.8rem;font-weight:500;background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.25)}.blog-tag-primary{background:var(--gold);color:var(--dark);border-color:var(--gold);font-weight:600}
+
+        /* Featured Image */
+        .featured-image{width:100%;max-width:800px;margin:0 auto -40px;padding:0 20px;position:relative;z-index:10}.featured-image img{width:100%;height:400px;object-fit:cover;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.2)}
+
+        /* Social Share Bar */
+        .social-share-bar{display:flex;align-items:center;gap:12px;padding:20px 0;margin:30px 0;border-top:1px solid #eee;border-bottom:1px solid #eee}.social-share-bar span{font-size:.9rem;font-weight:600;color:var(--dark)}.share-btn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;font-size:1rem;color:#fff;transition:transform .2s,opacity .2s}.share-btn:hover{transform:scale(1.1);opacity:.9}.share-btn.whatsapp{background:#25D366}.share-btn.facebook{background:#1877F2}.share-btn.linkedin{background:#0A66C2}.share-btn.twitter{background:#1DA1F2}.share-btn.copy-link{background:var(--dark);font-size:.85rem}
+
+        /* Table of Contents */
+        .toc-container{background:linear-gradient(135deg,#f8f9fa,#fff);border:1px solid #e9ecef;border-left:4px solid var(--primary);border-radius:0 12px 12px 0;padding:25px 30px;margin:0 0 40px}.toc-container h4{font-family:'Montserrat',sans-serif;font-size:1.1rem;color:var(--dark);margin-bottom:15px;display:flex;align-items:center;gap:8px}.toc-container h4 i{color:var(--primary)}.toc-container ol{margin:0;padding-left:20px;counter-reset:toc}.toc-container li{margin-bottom:10px;line-height:1.6}.toc-container a{color:var(--text-light);text-decoration:none;font-size:.95rem;transition:color .2s}.toc-container a:hover{color:var(--primary)}
+
+        /* Article Content */
+        .article-content{padding:80px 0;max-width:800px;margin:0 auto}.article-content h2{font-family:'Montserrat',sans-serif;font-size:1.8rem;color:var(--dark);margin:50px 0 20px}.article-content h3{font-size:1.3rem;color:var(--dark);margin:35px 0 15px}.article-content p{color:var(--text-light);font-size:1.05rem;line-height:1.9;margin-bottom:20px}.article-content ul,.article-content ol{color:var(--text-light);margin:20px 0 20px 25px;line-height:2}.article-content a{color:var(--primary);text-decoration:underline}
+
+        /* Key Takeaway & Stats */
+        .key-takeaway{background:linear-gradient(135deg,rgba(128,0,0,.1) 0%,rgba(128,0,0,.05) 100%);border-left:4px solid var(--primary);padding:25px 30px;margin:30px 0;border-radius:0 10px 10px 0}.key-takeaway h4{color:var(--primary);margin-bottom:10px}.key-takeaway p{margin:0;color:var(--text)}.stat-box{background:var(--dark);color:var(--white);padding:30px;border-radius:15px;text-align:center;margin:30px 0}.stat-box .number{font-family:'Montserrat',sans-serif;font-size:3rem;color:var(--gold)}
+
+        /* CTA, Author, Related */
+        .article-cta{background:linear-gradient(135deg,#800000 0%,#4a0000 100%);color:var(--white);padding:50px;border-radius:15px;text-align:center;margin:50px 0}.article-cta h3{color:var(--white);margin-bottom:15px}.article-cta p{color:rgba(255,255,255,.9);margin-bottom:25px}.author-box{display:flex;gap:20px;padding:30px;background:#f8f9fa;border-radius:15px;margin:50px 0}.author-avatar{width:80px;height:80px;background:linear-gradient(135deg,#800000 0%,#4a0000 100%);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--white);font-size:1.5rem;font-weight:700}.related-posts{background:#f8f9fa;padding:40px;border-radius:15px;margin:40px 0}.related-posts h3{margin-bottom:20px;color:var(--dark)}.related-posts ul{list-style:none;margin:0;padding:0}.related-posts li{margin-bottom:15px}.related-posts a{color:var(--primary);font-weight:500;text-decoration:none;display:flex;align-items:center;gap:10px}.related-posts a:hover{text-decoration:underline}.related-posts i{color:#d4af37}
+
+        @media(max-width:768px){.blog-article-hero h1{font-size:1.8rem}.blog-meta-info{flex-wrap:wrap}.author-box{flex-direction:column;text-align:center}.featured-image img{height:250px}.social-share-bar{flex-wrap:wrap}.toc-container{padding:20px}}
     </style>
 
     <script type="application/ld+json">
@@ -472,6 +559,9 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
         </div>
     </header>
 
+    <!-- Reading Progress Bar -->
+    <div class="reading-progress" id="readingProgress"></div>
+
     <section class="blog-article-hero">
         <div class="container">
             <span class="badge">${CATEGORY}</span>
@@ -480,6 +570,7 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
                 <span><i class="fas fa-calendar"></i> ${TODAY_DISPLAY}</span>
                 <span><i class="fas fa-clock"></i> ${READ_TIME} min read</span>
             </div>
+            <div class="blog-tags">${TAGS_HTML}</div>
         </div>
     </section>
 
@@ -488,7 +579,34 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
     </div>
 
     <article class="article-content container">
+
+        <!-- Social Share Bar -->
+        <div class="social-share-bar">
+            <span><i class="fas fa-share-alt"></i> Share:</span>
+            <button class="share-btn whatsapp" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.title+' '+window.location.href),'_blank')" title="Share on WhatsApp"><i class="fab fa-whatsapp"></i></button>
+            <button class="share-btn facebook" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(window.location.href),'_blank')" title="Share on Facebook"><i class="fab fa-facebook-f"></i></button>
+            <button class="share-btn linkedin" onclick="window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(window.location.href),'_blank')" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></button>
+            <button class="share-btn twitter" onclick="window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(window.location.href)+'&text='+encodeURIComponent(document.title),'_blank')" title="Share on X"><i class="fab fa-x-twitter"></i></button>
+            <button class="share-btn copy-link" onclick="navigator.clipboard.writeText(window.location.href);this.innerHTML='<i class=\\'fas fa-check\\'></i>';setTimeout(()=>this.innerHTML='<i class=\\'fas fa-link\\'></i>',2000)" title="Copy Link"><i class="fas fa-link"></i></button>
+        </div>
+
+        <!-- Table of Contents (auto-generated via JS) -->
+        <div class="toc-container" id="tocContainer">
+            <h4><i class="fas fa-list"></i> Table of Contents</h4>
+            <ol id="tocList"></ol>
+        </div>
+
         ${CONTENT}
+
+        <!-- Social Share Bar (bottom) -->
+        <div class="social-share-bar">
+            <span><i class="fas fa-share-alt"></i> Share this article:</span>
+            <button class="share-btn whatsapp" onclick="window.open('https://wa.me/?text='+encodeURIComponent(document.title+' '+window.location.href),'_blank')" title="Share on WhatsApp"><i class="fab fa-whatsapp"></i></button>
+            <button class="share-btn facebook" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(window.location.href),'_blank')" title="Share on Facebook"><i class="fab fa-facebook-f"></i></button>
+            <button class="share-btn linkedin" onclick="window.open('https://www.linkedin.com/sharing/share-offsite/?url='+encodeURIComponent(window.location.href),'_blank')" title="Share on LinkedIn"><i class="fab fa-linkedin-in"></i></button>
+            <button class="share-btn twitter" onclick="window.open('https://twitter.com/intent/tweet?url='+encodeURIComponent(window.location.href)+'&text='+encodeURIComponent(document.title),'_blank')" title="Share on X"><i class="fab fa-x-twitter"></i></button>
+            <button class="share-btn copy-link" onclick="navigator.clipboard.writeText(window.location.href);this.innerHTML='<i class=\\'fas fa-check\\'></i>';setTimeout(()=>this.innerHTML='<i class=\\'fas fa-link\\'></i>',2000)" title="Copy Link"><i class="fas fa-link"></i></button>
+        </div>
 
         <div class="related-posts">
             <h3><i class="fas fa-book-open"></i> Related Articles</h3>
@@ -528,6 +646,41 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
 
     <a href="https://wa.me/917011066532" class="whatsapp-float" target="_blank"><i class="fab fa-whatsapp"></i></a>
     <script src="../script.js?v=3" defer></script>
+
+    <!-- TOC Generator + Reading Progress -->
+    <script>
+    document.addEventListener('DOMContentLoaded',function(){
+        // Auto-generate Table of Contents from H2 headings
+        var headings=document.querySelectorAll('.article-content h2');
+        var tocList=document.getElementById('tocList');
+        var tocContainer=document.getElementById('tocContainer');
+        if(headings.length>1&&tocList){
+            headings.forEach(function(h,i){
+                var id='section-'+(i+1);
+                h.id=id;
+                var li=document.createElement('li');
+                var a=document.createElement('a');
+                a.href='#'+id;
+                a.textContent=h.textContent;
+                li.appendChild(a);
+                tocList.appendChild(li);
+            });
+        }else if(tocContainer){
+            tocContainer.style.display='none';
+        }
+
+        // Reading Progress Bar
+        var progressBar=document.getElementById('readingProgress');
+        if(progressBar){
+            window.addEventListener('scroll',function(){
+                var scrollTop=window.scrollY;
+                var docHeight=document.documentElement.scrollHeight-window.innerHeight;
+                var progress=(scrollTop/docHeight)*100;
+                progressBar.style.width=progress+'%';
+            });
+        }
+    });
+    </script>
 </body>
 </html>
 HTMLEOF

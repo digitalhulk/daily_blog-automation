@@ -30,22 +30,26 @@ fi
 
 echo ""
 echo "Select Category:"
-echo "1. Market Trends"
-echo "2. Investment Tips"
-echo "3. News & Updates"
-echo "4. Lifestyle"
+echo "1. SEO & Website"
+echo "2. Paid Ads"
+echo "3. Social Media"
+echo "4. Lead Generation"
 echo "5. Builder & Developer Tips"
-echo "6. Custom"
-read -p "Enter choice (1-6): " CAT_CHOICE
+echo "6. Market Trends"
+echo "7. AI & Tech"
+echo "8. Custom"
+read -p "Enter choice (1-8): " CAT_CHOICE
 
 case $CAT_CHOICE in
-    1) CATEGORY="Market Trends" ;;
-    2) CATEGORY="Investment Tips" ;;
-    3) CATEGORY="News Updates" ;;
-    4) CATEGORY="Lifestyle" ;;
+    1) CATEGORY="SEO & Website" ;;
+    2) CATEGORY="Paid Ads" ;;
+    3) CATEGORY="Social Media" ;;
+    4) CATEGORY="Lead Generation" ;;
     5) CATEGORY="Builder & Developer Tips" ;;
-    6) read -p "Enter Custom Category: " CATEGORY ;;
-    *) CATEGORY="Real Estate" ;;
+    6) CATEGORY="Market Trends" ;;
+    7) CATEGORY="AI & Tech" ;;
+    8) read -p "Enter Custom Category: " CATEGORY ;;
+    *) CATEGORY="Market Trends" ;;
 esac
 
 echo ""
