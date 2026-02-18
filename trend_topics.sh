@@ -96,7 +96,12 @@ Google My Business for Real Estate Agents|gmb real estate|local seo, google maps
 Property Video Marketing Complete Guide|property video marketing|walkthrough, drone videos
 Real Estate Influencer Marketing Strategy|influencer marketing real estate|collaboration, micro
 Chatbot Implementation for Builder Websites|chatbot real estate website|ai chat, lead capture
-Landing Page Optimization for Real Estate|landing page real estate|conversion optimization"
+Landing Page Optimization for Real Estate|landing page real estate|conversion optimization
+How Builders Can Generate More Site Visits Through Digital Marketing|builder site visit generation|construction marketing, developer leads
+RERA Compliance Marketing Guide for Developers|rera compliance marketing|rera registration, builder compliance
+Project Launch Marketing Strategy for Builders|project launch marketing real estate|new project promotion, builder launch
+Best CRM Tools for Real Estate Builders in India|crm tools builders india|developer crm, lead management builders
+Referral Marketing Strategies for Real Estate Builders|referral marketing builders|word of mouth, builder referrals"
 
 # Get topics
 SEASONAL=$(get_seasonal_topics)
@@ -145,6 +150,18 @@ echo "📈 Market Analysis:"
 echo "$MARKET_ANALYSIS"
 echo ""
 
+# Determine category based on topic keywords
+TOPIC_LOWER=$(echo "$TOPIC_TITLE" | tr '[:upper:]' '[:lower:]')
+KW_LOWER=$(echo "$PRIMARY_KW" | tr '[:upper:]' '[:lower:]')
+
+if echo "$TOPIC_LOWER $KW_LOWER" | grep -qiE "builder|developer|construction|rera|project launch|crm tools builder|referral.*builder"; then
+    TOPIC_CATEGORY="Builder & Developer Tips"
+else
+    TOPIC_CATEGORY="Market Trends"
+fi
+
+echo "📂 Category: $TOPIC_CATEGORY"
+
 # Save to file for blog generator (properly escape JSON)
 python3 << PYSAVE
 import json
@@ -156,6 +173,7 @@ data = {
     "market_analysis": """$MARKET_ANALYSIS""",
     "date": "$(date '+%Y-%m-%d')",
     "month": "$MONTH",
+    "category": """$TOPIC_CATEGORY""",
     "type": "$TOPIC_TYPE"
 }
 

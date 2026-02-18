@@ -35,6 +35,7 @@ if [ -f "$TREND_TOPIC_FILE" ]; then
     PRIMARY_KEYWORD=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('primary_keyword',''))")
     SECONDARY_KEYWORDS=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('secondary_keywords',''))")
     MARKET_ANALYSIS=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('market_analysis',''))")
+    CATEGORY=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('category','Real Estate'))")
     # Get Perplexity research if available
     PERPLEXITY_RESEARCH=$(python3 -c "import json; d=json.load(open('$TREND_TOPIC_FILE')); print(d.get('perplexity_research',''))" 2>/dev/null || echo "")
     if [ -n "$PERPLEXITY_RESEARCH" ]; then
@@ -47,6 +48,7 @@ else
     PRIMARY_KEYWORD=$(echo "$TOPIC_LINE" | cut -d'|' -f2)
     SECONDARY_KEYWORDS=$(echo "$TOPIC_LINE" | cut -d'|' -f3)
     MARKET_ANALYSIS=""
+    CATEGORY="Real Estate Tips"
     PERPLEXITY_RESEARCH=""
 fi
 
@@ -200,9 +202,9 @@ with open("$PAYLOAD_FILE", "w") as f:
 print("Payload created")
 PYPAYLOAD
 
-# Call Ollama API
+# Call Ollama API (max 5 min timeout to prevent hanging)
 echo "📡 Calling Ollama API..."
-API_RESPONSE=$(curl -s http://localhost:11434/api/generate -d @"$PAYLOAD_FILE" 2>/dev/null)
+API_RESPONSE=$(curl -s --max-time 300 http://localhost:11434/api/generate -d @"$PAYLOAD_FILE" 2>/dev/null)
 RESPONSE=$(echo "$API_RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('response',''))" 2>/dev/null)
 
 # Debug: Show response length
@@ -472,7 +474,7 @@ cat > "$OUTPUT_DIR/$FILENAME" << HTMLEOF
 
     <section class="blog-article-hero">
         <div class="container">
-            <span class="badge">Digital Marketing</span>
+            <span class="badge">${CATEGORY}</span>
             <h1>${SEO_TITLE}</h1>
             <div class="blog-meta-info">
                 <span><i class="fas fa-calendar"></i> ${TODAY_DISPLAY}</span>
@@ -539,6 +541,7 @@ cat > "$OUTPUT_DIR/latest_blog.json" << JSONEOF
     "title": "${SEO_TITLE}",
     "slug": "${SLUG}",
     "date": "${TODAY}",
+    "category": "${CATEGORY}",
     "url": "${SITE_URL}/blog/${FILENAME}"
 }
 JSONEOF

@@ -69,7 +69,8 @@ Provide factual, data-driven insights that can be used in a professional blog po
     }
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        # (connect_timeout=10s, read_timeout=45s) to prevent hanging
+        response = requests.post(url, headers=headers, json=payload, timeout=(10, 45))
         response.raise_for_status()
 
         result = response.json()
