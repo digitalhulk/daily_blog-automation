@@ -8,6 +8,10 @@ reports/
 # Logs
 *.log
 indexing_log.txt
+indexnow_log.txt
+ping_log.txt
+internal_links_log.txt
+social_share_log.txt
 
 # macOS
 .DS_Store

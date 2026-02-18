@@ -15,6 +15,7 @@ FILENAME=$(grep '"filename"' "$OUTPUT_DIR/latest_blog.json" | cut -d'"' -f4)
 TITLE=$(grep '"title"' "$OUTPUT_DIR/latest_blog.json" | cut -d'"' -f4)
 BLOG_URL=$(grep '"url"' "$OUTPUT_DIR/latest_blog.json" | cut -d'"' -f4)
 SLUG=$(grep '"slug"' "$OUTPUT_DIR/latest_blog.json" | cut -d'"' -f4)
+CATEGORY=$(grep '"category"' "$OUTPUT_DIR/latest_blog.json" | cut -d'"' -f4)
 TODAY=$(date +%Y-%m-%d)
 FEATURED_IMAGE="${SLUG}.jpg"
 
@@ -109,7 +110,7 @@ else
                 <article class="blog-card fade-in">\
                     <div class="blog-image">\
                         <img src="images/${FEATURED_IMAGE}" alt="${TITLE} - Real Estate Digital Marketing Guide | LeadHorizon" loading="lazy">\
-                        <span class="blog-category">Marketing</span>\
+                        <span class="blog-category">${CATEGORY}</span>\
                     </div>\
                     <div class="blog-content">\
                         <h3><a href="blog/${FILENAME}">${TITLE}</a></h3>\
